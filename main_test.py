@@ -48,6 +48,32 @@ class MainTest(unittest.TestCase):
     self.mock_from_pretrained.assert_has_calls(expected_calls)
     self.assertEqual(_FAKE_SUMMARY, actual_response)
 
+  @mock.patch.object(main, 'post_job_to_summarize')
+  def test_emmbed_article_to_prompt_ja(self, mock_post_job_to_summarize):
+    expected_lang = 'JA'
+    expected_article = 'これはテストです。'
+
+    _ = main.emmbed_article_to_prompt(
+        expected_lang,
+        expected_article,
+    )
+
+    mock_post_job_to_summarize.assert_called_once_with(
+        main._TEMPLATE_PROMPTS[expected_lang].format(article=expected_article)
+    )
+
+  def test_emmbed_article_to_prompt_failure_with_wrong_lang(self):
+    expected_lang = 'FAKE_LANG'
+    expected_article = 'This is a test.'
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'The input LANG is not supported.'
+    ):
+      main.emmbed_article_to_prompt(
+          expected_lang,
+          expected_article,
+      )
 
 if __name__ == '__main__':
   unittest.main()

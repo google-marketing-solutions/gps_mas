@@ -17,6 +17,7 @@
 Run from project's root directory.
 """
 
+import error_messages
 import immutabledict
 from vertexai.language_models import TextGenerationModel
 
@@ -33,8 +34,32 @@ _PARAMETERS = immutabledict.immutabledict({
     'top_k': _TOP_K,
 })
 
+_TEMPLATE_PROMPTS = immutabledict.immutabledict({
+    'JA': """ あなたは記事の編集担当です。次の記事の要約を考えてください。
+    ただし次の条件を満たしてください。
+    条件:
+      - 要約だけ返してください。
+      - ユーザーがもっと読みたくなるような要約を作成してください。
+    記事:
+      {article}
+    """
+})
+
 
 def post_job_to_summarize(context: str) -> str:
+  """Posts job to Vertex AI API for summarization.
+
+  Posts job for summarization task for Vertext AI API and gets a result of
+  summarization from posting prompts.
+
+  Args:
+    context: A language of the text you would like to summarize.
+
+  Returns:
+    A string summarization results from Vertex AI API.
+
+    'This is a sampple summary. It is rain in Tokyo.'
+  """
   model = TextGenerationModel.from_pretrained(
       _MODEL,
   )
@@ -44,3 +69,31 @@ def post_job_to_summarize(context: str) -> str:
   )
 
   return response
+
+
+def emmbed_article_to_prompt(lang: str, article: str) -> None:
+  """Embeds article to template prompt for summarization.
+
+  Embeds article to template promt with specified language calls
+  post_job_to_summarize function with prompts embedded artcile for the
+  summarization.
+
+  Args:
+    lang: A language of the text you would like to summarize.
+    article: A context that user would like to summaize.
+
+  Returns:
+    A string summarization results from Vertex AI API via post_job_to_summze
+    function.
+
+  Raises:
+    ValueError: An error occurred if it enter a lang that does not exist in
+    templates.
+  """
+
+  if lang == 'JA':
+    context = _TEMPLATE_PROMPTS['JA'].format(article=article)
+    response = post_job_to_summarize(context)
+    return response
+  else:
+    raise ValueError(error_messages.NOT_EXISTS_LANG_INFO)
