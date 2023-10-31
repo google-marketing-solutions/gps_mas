@@ -17,15 +17,28 @@
 Run from project's root directory.
 """
 
+import os
+
 import error_messages
+import helpers
 import immutabledict
+import numpy as np
+import vertexai
 from vertexai.language_models import TextGenerationModel
 
+
+_DEFAULT_CONFIGS = 'configs.yaml'
 _TEMPERATURE = 0.7
 _MAX_OUTPUT_TOKENS = 300
 _TOP_P = 0.8
 _TOP_K = 40
 _MODEL = 'text-bison@001'
+_REGION = 'us-central1'
+_OUTPUT_FMT = '%s'
+_NEWLINE = '\n'
+_DELIMITER = ','
+_ENCODING = 'utf8'
+_SKIPROWS = 1
 
 _PARAMETERS = immutabledict.immutabledict({
     'temperature': _TEMPERATURE,
@@ -35,7 +48,7 @@ _PARAMETERS = immutabledict.immutabledict({
 })
 
 _TEMPLATE_PROMPTS = immutabledict.immutabledict({
-    'JA': """ あなたは記事の編集担当です。次の記事の要約を考えてください。
+    'JP': """ あなたは記事の編集担当です。次の記事の要約を考えてください。
     ただし次の条件を満たしてください。
     条件:
       - 要約だけ返してください。
@@ -44,6 +57,26 @@ _TEMPLATE_PROMPTS = immutabledict.immutabledict({
       {article}
     """
 })
+
+_ID = 'ID'
+_LANG = 'Lang'
+_ARTICLE = 'Article'
+_OUTPUT = 'Output'
+_CSV_INPUT_DTYPES = np.dtype([
+    (_ID, 'i4'),
+    (_LANG, 'O'),
+    (_ARTICLE, 'O'),
+])
+
+_CSV_OUTPUT_DTYPES = np.dtype([
+    (_ID, 'i4'),
+    (_OUTPUT, 'O'),
+])
+
+config_data = helpers.get_configs(_DEFAULT_CONFIGS)
+_PROJECT_ID = config_data.project_id
+_INPUT_CSV_FILE = config_data.input_csv_file
+_OUTPUT_CSV_FILE = config_data.output_csv_file
 
 
 def post_job_to_summarize(context: str) -> str:
@@ -91,9 +124,71 @@ def emmbed_article_to_prompt(lang: str, article: str) -> None:
     templates.
   """
 
-  if lang == 'JA':
-    context = _TEMPLATE_PROMPTS['JA'].format(article=article)
+  if lang == 'JP':
+    context = _TEMPLATE_PROMPTS['JP'].format(article=article)
     response = post_job_to_summarize(context)
     return response
   else:
     raise ValueError(error_messages.NOT_EXISTS_LANG_INFO)
+
+
+def execute_summarization_from_csv_file() -> None:
+  """Executes summarization process from csv file.
+
+  Loads csv files with id, language and article. Calls emmbed_article_to_prompt
+  in each line of loaded array with lang and article data. After compliting
+  process of calling summarization process, they are saved to csv file.
+
+  Raises:
+    IOError: An error occurred if input file dose not exist.
+  """
+
+  if os.path.exists(_INPUT_CSV_FILE):
+    media_data = np.loadtxt(
+        _INPUT_CSV_FILE,
+        delimiter=_DELIMITER,
+        skiprows=_SKIPROWS,
+        dtype=_CSV_INPUT_DTYPES,
+    )
+  else:
+    raise IOError(error_messages.NOT_EXISTS_INPUT_FILE)
+
+  output_array = np.zeros((1, 2))
+  if media_data.size > 1.0:
+    for row_no, (row_id, lang, article) in enumerate(media_data):
+      output = str(emmbed_article_to_prompt(lang, article))
+      if row_no == 0:
+        output_array = np.array(
+            [(row_id, output)],
+            dtype=_CSV_OUTPUT_DTYPES,
+        )
+      else:
+        output_array = np.concatenate(
+            (
+                output_array,
+                np.array([(row_id, output)], dtype=_CSV_OUTPUT_DTYPES)
+            ),
+            axis=0,
+        )
+  else:
+    output = emmbed_article_to_prompt(media_data[_LANG], media_data[_ARTICLE])
+    output_array = np.array([(1, output)], dtype=_CSV_OUTPUT_DTYPES)
+
+  np.savetxt(
+      _OUTPUT_CSV_FILE,
+      output_array,
+      delimiter=_DELIMITER,
+      newline=_NEWLINE,
+      fmt=_OUTPUT_FMT,
+      encoding=_ENCODING
+  )
+
+
+def main() -> None:
+  """Executes Media Atricle Summaizaer all steps."""
+  vertexai.init(project=_PROJECT_ID, location=_REGION)
+  execute_summarization_from_csv_file()
+
+
+if __name__ == '__main__':
+  main()

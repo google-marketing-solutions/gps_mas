@@ -26,6 +26,8 @@ class UtilsTest(unittest.TestCase):
   def test_get_configs_returns(self):
     test_configs = """
       project_id: 'source_project_id'
+      input_csv_file: 'fake_input.csv'
+      output_csv_file: 'fake_output.csv'
     """
     mock_open = mock.mock_open(read_data=test_configs)
     with mock.patch('builtins.open', mock_open, create=True):
@@ -33,5 +35,5 @@ class UtilsTest(unittest.TestCase):
 
     self.assertIsInstance(config, types.SimpleNamespace)
 
-    for attr in ['project_id']:
+    for attr in ['project_id', 'input_csv_file', 'output_csv_file']:
       self.assertTrue(hasattr(config, attr))

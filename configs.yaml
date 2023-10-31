@@ -13,3 +13,5 @@
 # limitations under the License.
 
 project_id: XXXXXXXXXX
+input_csv_file: input.csv
+output_csv_file: output.csv

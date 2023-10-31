@@ -14,25 +14,50 @@
 
 """Tests for main.py."""
 
+import os
 import unittest
 from unittest import mock
+
+from absl.testing import parameterized
 import main
+import numpy as np
+
 
 _FAKE_SUMMARY = 'fake summary'
+_FAKE_NP_LOADTXT_INPUT_2_LINES = np.array(
+    [(1, 'JP', 'fake article 01-02'),
+     (2, 'JP', 'fake article 02-02')],
+    dtype=main._CSV_INPUT_DTYPES,
+)
+_FAKE_NP_LOADTXT_INPUT_1_LINE = np.array(
+    [(1, 'JP', 'fake article 01-01')],
+    dtype=main._CSV_INPUT_DTYPES,
+)
+_FAKE_COMMON_PATH = '/path/to'
+_FAKE_INPUT_FILEPATH = os.path.join(_FAKE_COMMON_PATH, 'input.csv')
+_FAKE_OUTPUT_FILEPATH = os.path.join(_FAKE_COMMON_PATH, 'output.csv')
 
 
-class MainTest(unittest.TestCase):
-
+class MainTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self.addCleanup(mock.patch.stopall)
     self.mock_from_pretrained = mock.patch.object(
         main.TextGenerationModel,
         'from_pretrained',
-        autospec=True).start()
+        autospec=True,
+    ).start()
     self.mock_from_pretrained.return_value.predict.return_value = (
         _FAKE_SUMMARY
     )
+    mock.patch(
+        'main._INPUT_CSV_FILE',
+        _FAKE_INPUT_FILEPATH,
+    ).start()
+    mock.patch(
+        'main._OUTPUT_CSV_FILE',
+        _FAKE_OUTPUT_FILEPATH,
+    ).start()
 
   def test_post_job_to_summarize(self):
     expected_context = (
@@ -50,10 +75,10 @@ class MainTest(unittest.TestCase):
 
   @mock.patch.object(main, 'post_job_to_summarize')
   def test_emmbed_article_to_prompt_ja(self, mock_post_job_to_summarize):
-    expected_lang = 'JA'
+    expected_lang = 'JP'
     expected_article = 'これはテストです。'
 
-    _ = main.emmbed_article_to_prompt(
+    main.emmbed_article_to_prompt(
         expected_lang,
         expected_article,
     )
@@ -74,6 +99,73 @@ class MainTest(unittest.TestCase):
           expected_lang,
           expected_article,
       )
+
+  @parameterized.named_parameters([
+      {
+          'testcase_name': '2_rows_file_success',
+          'loadtxt_input_data': _FAKE_NP_LOADTXT_INPUT_2_LINES,
+          'expected_output_data': (
+              np.array([(1, 'fake summary'), (2, 'fake summary')],
+                       dtype=[('ID', '<i4'), ('Output', 'O')]),
+          ),
+      },
+      {
+          'testcase_name': '1_row_file_success',
+          'loadtxt_input_data': _FAKE_NP_LOADTXT_INPUT_1_LINE,
+          'expected_output_data': (
+              np.array([(1, 'fake summary')],
+                       dtype=[('ID', '<i4'), ('Output', 'O')]),
+          ),
+      }
+  ])
+  @mock.patch.object(main.np, 'savetxt')
+  @mock.patch.object(main.os.path, 'exists', return_value=True)
+  def test_execute_summarization_from_csv_file_with(
+      self,
+      _,
+      mock_np_savetxt,
+      loadtxt_input_data,
+      expected_output_data,
+  ):
+    mock_np_loadtxt = mock.patch.object(
+        main.np,
+        'loadtxt',
+        return_value=loadtxt_input_data,
+        autospec=True
+    ).start()
+
+    main.execute_summarization_from_csv_file()
+
+    mock_np_loadtxt.assert_called_with(
+        _FAKE_INPUT_FILEPATH,
+        delimiter=main._DELIMITER,
+        skiprows=main._SKIPROWS,
+        dtype=np.dtype([('ID', '<i4'), ('Lang', 'O'), ('Article', 'O')])
+    )
+    np.testing.assert_array_equal(
+        expected_output_data[0],
+        mock_np_savetxt.call_args[0][1],
+    )
+    mock_np_savetxt.assert_called_with(
+        _FAKE_OUTPUT_FILEPATH,
+        mock.ANY,
+        delimiter=main._DELIMITER,
+        newline=main._NEWLINE,
+        fmt=main._OUTPUT_FMT,
+        encoding=main._ENCODING,
+    )
+
+  @mock.patch.object(main.os.path, 'exists', return_value=False)
+  def test_execute_summarization_from_csv_file_with_failure_no_file(
+      self,
+      _
+  ):
+    with self.assertRaisesRegex(
+        IOError,
+        'The input file dose not exist.'
+    ):
+      main.execute_summarization_from_csv_file()
+
 
 if __name__ == '__main__':
   unittest.main()

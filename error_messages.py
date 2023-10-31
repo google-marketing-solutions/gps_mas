@@ -19,3 +19,7 @@ from typing import Final
 NOT_EXISTS_LANG_INFO: Final[str] = (
     'The input LANG is not supported.'
 )
+
+NOT_EXISTS_INPUT_FILE: Final[str] = (
+    'The input file dose not exist.'
+)
