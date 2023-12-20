@@ -25,14 +25,18 @@ import immutabledict
 import numpy as np
 import vertexai
 from vertexai.language_models import TextGenerationModel
-
+from vertexai.preview.generative_models import GenerativeModel
 
 _DEFAULT_CONFIGS = 'configs.yaml'
 _TEMPERATURE = 0.7
 _MAX_OUTPUT_TOKENS = 300
 _TOP_P = 0.8
 _TOP_K = 40
-_MODEL = 'text-bison@001'
+_TEXT_BISON = 'text-bison'
+_TEXT_UNICORN = 'text-unicorn'
+_GEMINI_PRO = 'gemini-pro'
+_DEFAULT_MODEL = _TEXT_BISON
+
 _REGION = 'us-central1'
 _OUTPUT_FMT = '%s'
 _NEWLINE = '\n'
@@ -62,9 +66,11 @@ _ID = 'ID'
 _LANG = 'Lang'
 _ARTICLE = 'Article'
 _OUTPUT = 'Output'
+_MODEL = 'Model'
 _CSV_INPUT_DTYPES = np.dtype([
     (_ID, 'i4'),
     (_LANG, 'O'),
+    (_MODEL, 'O'),
     (_ARTICLE, 'O'),
 ])
 
@@ -79,7 +85,8 @@ _INPUT_CSV_FILE = config_data.input_csv_file
 _OUTPUT_CSV_FILE = config_data.output_csv_file
 
 
-def post_job_to_summarize(context: str) -> str:
+# TODO: b/317180228 - Use Enum for model name.
+def post_job_to_summarize(context: str, model: str = _DEFAULT_MODEL) -> str:
   """Posts job to Vertex AI API for summarization.
 
   Posts job for summarization task for Vertext AI API and gets a result of
@@ -87,24 +94,38 @@ def post_job_to_summarize(context: str) -> str:
 
   Args:
     context: A language of the text you would like to summarize.
+    model: A model that you want to use.
 
   Returns:
     A string summarization results from Vertex AI API.
 
     'This is a sampple summary. It is rain in Tokyo.'
   """
-  model = TextGenerationModel.from_pretrained(
-      _MODEL,
-  )
-  response = model.predict(
-      context,
-      **_PARAMETERS,
-  )
+
+  if model in [_TEXT_BISON, _TEXT_UNICORN]:
+    llm_model = TextGenerationModel.from_pretrained(
+        model,
+    )
+    response = llm_model.predict(
+        context,
+        **_PARAMETERS,
+    )
+  elif model in [_GEMINI_PRO]:
+    llm_model = GenerativeModel(model)
+    response = llm_model.generate_content(
+        context,
+    )
+  else:
+    raise ValueError(
+        error_messages.NOT_AVAILABLE_LLM_MODEL.format(
+            model_name=model
+        )
+    )
 
   return response
 
 
-def emmbed_article_to_prompt(lang: str, article: str) -> None:
+def emmbed_article_to_prompt(lang: str, article: str, model: str) -> None:
   """Embeds article to template prompt for summarization.
 
   Embeds article to template promt with specified language calls
@@ -114,6 +135,7 @@ def emmbed_article_to_prompt(lang: str, article: str) -> None:
   Args:
     lang: A language of the text you would like to summarize.
     article: A context that user would like to summaize.
+    model: A model that you want to use.
 
   Returns:
     A string summarization results from Vertex AI API via post_job_to_summze
@@ -126,7 +148,7 @@ def emmbed_article_to_prompt(lang: str, article: str) -> None:
 
   if lang == 'JP':
     context = _TEMPLATE_PROMPTS['JP'].format(article=article)
-    response = post_job_to_summarize(context)
+    response = post_job_to_summarize(context, model)
     return response
   else:
     raise ValueError(error_messages.NOT_EXISTS_LANG_INFO)
@@ -155,8 +177,8 @@ def execute_summarization_from_csv_file() -> None:
 
   output_array = np.zeros((1, 2))
   if media_data.size > 1.0:
-    for row_no, (row_id, lang, article) in enumerate(media_data):
-      output = str(emmbed_article_to_prompt(lang, article))
+    for row_no, (row_id, lang, model, article) in enumerate(media_data):
+      output = str(emmbed_article_to_prompt(lang, article, model))
       if row_no == 0:
         output_array = np.array(
             [(row_id, output)],
@@ -171,7 +193,11 @@ def execute_summarization_from_csv_file() -> None:
             axis=0,
         )
   else:
-    output = emmbed_article_to_prompt(media_data[_LANG], media_data[_ARTICLE])
+    output = emmbed_article_to_prompt(
+        media_data[_LANG],
+        media_data[_ARTICLE],
+        media_data[_MODEL]
+    )
     output_array = np.array([(1, output)], dtype=_CSV_OUTPUT_DTYPES)
 
   np.savetxt(

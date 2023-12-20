@@ -25,12 +25,12 @@ import numpy as np
 
 _FAKE_SUMMARY = 'fake summary'
 _FAKE_NP_LOADTXT_INPUT_2_LINES = np.array(
-    [(1, 'JP', 'fake article 01-02'),
-     (2, 'JP', 'fake article 02-02')],
+    [(1, 'JP', 'text-bison', 'fake article 01-02'),
+     (2, 'JP', 'text-bison', 'fake article 02-02')],
     dtype=main._CSV_INPUT_DTYPES,
 )
 _FAKE_NP_LOADTXT_INPUT_1_LINE = np.array(
-    [(1, 'JP', 'fake article 01-01')],
+    [(1, 'JP', 'text-bison', 'fake article 01-01')],
     dtype=main._CSV_INPUT_DTYPES,
 )
 _FAKE_COMMON_PATH = '/path/to'
@@ -50,6 +50,14 @@ class MainTest(parameterized.TestCase):
     self.mock_from_pretrained.return_value.predict.return_value = (
         _FAKE_SUMMARY
     )
+    self.mock_generative_model = mock.patch.object(
+        main,
+        'GenerativeModel',
+        autospec=True,
+    ).start()
+    self.mock_generative_model.return_value.generate_content.return_value = (
+        _FAKE_SUMMARY
+    )
     mock.patch(
         'main._INPUT_CSV_FILE',
         _FAKE_INPUT_FILEPATH,
@@ -63,41 +71,86 @@ class MainTest(parameterized.TestCase):
     expected_context = (
         'This is a fake summary. It is rain in Tokyo, cloudy in Osaka.'
     )
-    expected_calls = [mock.call(main._MODEL),
-                      mock.call(main._MODEL).predict(
+    expected_model = 'text-bison'
+    expected_calls = [mock.call(main._DEFAULT_MODEL),
+                      mock.call(main._DEFAULT_MODEL).predict(
                           expected_context, **main._PARAMETERS),
                       ]
 
-    actual_response = main.post_job_to_summarize(expected_context)
+    actual_response = main.post_job_to_summarize(
+        expected_context,
+        expected_model
+    )
 
     self.mock_from_pretrained.assert_has_calls(expected_calls)
     self.assertEqual(_FAKE_SUMMARY, actual_response)
+
+  def test_post_job_to_summarize_with_gemini_pro(self):
+    expected_context = (
+        'This is a fake summary. It is rain in Tokyo, cloudy in Osaka.'
+    )
+    expected_model = 'gemini-pro'
+    expected_calls = [mock.call(expected_model),
+                      mock.call(expected_model).generate_content(
+                          expected_context
+                      ),
+                      ]
+
+    actual_response = main.post_job_to_summarize(
+        expected_context,
+        expected_model
+    )
+
+    self.mock_generative_model.assert_has_calls(expected_calls)
+    self.assertEqual(_FAKE_SUMMARY, actual_response)
+
+  def test_post_job_to_summarize_with_not_exist_llm_model(self):
+    expected_context = (
+        'This is a fake summary. It is rain in Tokyo, cloudy in Osaka.'
+    )
+    expected_model = 'non-exist-model'
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'The input llm model name, {model_name}, is not available.'.format(
+            model_name=expected_model
+        ),
+    ):
+      _ = main.post_job_to_summarize(
+          expected_context,
+          expected_model
+      )
 
   @mock.patch.object(main, 'post_job_to_summarize')
   def test_emmbed_article_to_prompt_ja(self, mock_post_job_to_summarize):
     expected_lang = 'JP'
     expected_article = 'これはテストです。'
+    expected_model = 'text-bison'
 
     main.emmbed_article_to_prompt(
         expected_lang,
         expected_article,
+        expected_model,
     )
 
     mock_post_job_to_summarize.assert_called_once_with(
-        main._TEMPLATE_PROMPTS[expected_lang].format(article=expected_article)
+        main._TEMPLATE_PROMPTS[expected_lang].format(article=expected_article),
+        expected_model,
     )
 
   def test_emmbed_article_to_prompt_failure_with_wrong_lang(self):
     expected_lang = 'FAKE_LANG'
     expected_article = 'This is a test.'
+    expected_model = 'text-bison'
 
     with self.assertRaisesRegex(
         ValueError,
-        'The input LANG is not supported.'
+        'The input LANG is not supported.',
     ):
       main.emmbed_article_to_prompt(
           expected_lang,
           expected_article,
+          expected_model,
       )
 
   @parameterized.named_parameters([
@@ -140,7 +193,11 @@ class MainTest(parameterized.TestCase):
         _FAKE_INPUT_FILEPATH,
         delimiter=main._DELIMITER,
         skiprows=main._SKIPROWS,
-        dtype=np.dtype([('ID', '<i4'), ('Lang', 'O'), ('Article', 'O')])
+        dtype=np.dtype([('ID', '<i4'),
+                        ('Lang', 'O'),
+                        ('Model', 'O'),
+                        ('Article', 'O')]
+                       )
     )
     np.testing.assert_array_equal(
         expected_output_data[0],

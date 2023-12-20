@@ -23,3 +23,7 @@ NOT_EXISTS_LANG_INFO: Final[str] = (
 NOT_EXISTS_INPUT_FILE: Final[str] = (
     'The input file dose not exist.'
 )
+
+NOT_AVAILABLE_LLM_MODEL: Final[str] = (
+    'The input llm model name, {model_name}, is not available.'
+)
