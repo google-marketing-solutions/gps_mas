@@ -109,12 +109,12 @@ def post_job_to_summarize(context: str, model: str = _DEFAULT_MODEL) -> str:
     response = llm_model.predict(
         context,
         **_PARAMETERS,
-    )
+    ).text
   elif model in [_GEMINI_PRO]:
     llm_model = GenerativeModel(model)
     response = llm_model.generate_content(
         context,
-    )
+    ).text
   else:
     raise ValueError(
         error_messages.NOT_AVAILABLE_LLM_MODEL.format(

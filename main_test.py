@@ -47,7 +47,7 @@ class MainTest(parameterized.TestCase):
         'from_pretrained',
         autospec=True,
     ).start()
-    self.mock_from_pretrained.return_value.predict.return_value = (
+    self.mock_from_pretrained.return_value.predict.return_value.text = (
         _FAKE_SUMMARY
     )
     self.mock_generative_model = mock.patch.object(
@@ -55,7 +55,7 @@ class MainTest(parameterized.TestCase):
         'GenerativeModel',
         autospec=True,
     ).start()
-    self.mock_generative_model.return_value.generate_content.return_value = (
+    self.mock_generative_model.return_value.generate_content.return_value.text = (
         _FAKE_SUMMARY
     )
     mock.patch(
