@@ -18,6 +18,7 @@ Run from project's root directory.
 """
 
 import os
+import enum
 
 import error_messages
 import helpers
@@ -32,10 +33,6 @@ _TEMPERATURE = 0.7
 _MAX_OUTPUT_TOKENS = 300
 _TOP_P = 0.8
 _TOP_K = 40
-_TEXT_BISON = 'text-bison'
-_TEXT_UNICORN = 'text-unicorn'
-_GEMINI_PRO = 'gemini-pro'
-_DEFAULT_MODEL = _TEXT_BISON
 
 _REGION = 'us-central1'
 _OUTPUT_FMT = '%s'
@@ -85,8 +82,24 @@ _INPUT_CSV_FILE = config_data.input_csv_file
 _OUTPUT_CSV_FILE = config_data.output_csv_file
 
 
-# TODO: b/317180228 - Use Enum for model name.
-def post_job_to_summarize(context: str, model: str = _DEFAULT_MODEL) -> str:
+@enum.unique
+class ModelName(enum.Enum):
+  """LLM Models that we can use in this solution."""
+  TEXT_BISON = 'text-bison'
+  TEXT_UNICORN = 'text-unicorn'
+  GEMINI_PRO = 'gemini-pro'
+
+
+@enum.unique
+class AvailableLang(enum.Enum):
+  """Available Language in this solution."""
+  JAPANESE = 'JP'
+
+
+def post_job_to_summarize(
+    context: str,
+    model: str = ModelName.GEMINI_PRO.value,
+) -> str:
   """Posts job to Vertex AI API for summarization.
 
   Posts job for summarization task for Vertext AI API and gets a result of
@@ -102,7 +115,7 @@ def post_job_to_summarize(context: str, model: str = _DEFAULT_MODEL) -> str:
     'This is a sample summary. It is rainy in Tokyo.'
   """
 
-  if model in [_TEXT_BISON, _TEXT_UNICORN]:
+  if model in [ModelName.TEXT_BISON.value, ModelName.TEXT_UNICORN.value]:
     llm_model = TextGenerationModel.from_pretrained(
         model,
     )
@@ -110,7 +123,7 @@ def post_job_to_summarize(context: str, model: str = _DEFAULT_MODEL) -> str:
         context,
         **_PARAMETERS,
     ).text
-  elif model in [_GEMINI_PRO]:
+  elif model in [ModelName.GEMINI_PRO.value]:
     llm_model = GenerativeModel(model)
     response = llm_model.generate_content(
         context,
@@ -146,8 +159,8 @@ def emmbed_article_to_prompt(lang: str, article: str, model: str) -> None:
     templates.
   """
 
-  if lang == 'JP':
-    context = _TEMPLATE_PROMPTS['JP'].format(article=article)
+  if lang in [availablelang.value for availablelang in AvailableLang]:
+    context = _TEMPLATE_PROMPTS[lang].format(article=article)
     response = post_job_to_summarize(context, model)
     return response
   else:

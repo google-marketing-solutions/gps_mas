@@ -66,13 +66,22 @@ class MainTest(parameterized.TestCase):
         _FAKE_OUTPUT_FILEPATH,
     ).start()
 
-  def test_post_job_to_summarize(self):
+  @parameterized.named_parameters([
+      {
+          'testcase_name': 'text_bison',
+          'expected_model': main.ModelName.TEXT_BISON.value,
+      },
+      {
+          'testcase_name': 'text_unicorn',
+          'expected_model': main.ModelName.TEXT_UNICORN.value,
+      }
+  ])
+  def test_post_job_to_summarize_with_success(self, expected_model):
     expected_context = (
         'This is a fake summary. It is rain in Tokyo, cloudy in Osaka.'
     )
-    expected_model = 'text-bison'
-    expected_calls = [mock.call(main._DEFAULT_MODEL),
-                      mock.call(main._DEFAULT_MODEL).predict(
+    expected_calls = [mock.call(expected_model),
+                      mock.call(expected_model).predict(
                           expected_context, **main._PARAMETERS),
                       ]
 
@@ -163,7 +172,7 @@ class MainTest(parameterized.TestCase):
       },
       {
           'testcase_name': '1_row_file_success',
-          'loadtxt_input_data': _FAKE_NP_LOADTXT_INPUT_1_LINE,
+          'loadtxt_input_data': _FAKE_NP_LOADTXT_INPUT_1_LINE[0],
           'expected_output_data': (
               np.array([(1, 'fake summary')],
                        dtype=[('ID', '<i4'), ('Output', 'O')]),
