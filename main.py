@@ -17,8 +17,8 @@
 Run from project's root directory.
 """
 
-import os
 import enum
+import os
 
 import error_messages
 import helpers
@@ -55,6 +55,14 @@ _TEMPLATE_PROMPTS = immutabledict.immutabledict({
       - 要約だけ返してください。
       - ユーザーがもっと読みたくなるような要約を作成してください。
     記事:
+      {article}
+    """,
+    'EN': """ As an article editor, please provide me with a summary of article
+    that meets the following criteria.
+    Criteria:
+      - Summary only
+      - Written to entice readers to read the full article
+    Article:
       {article}
     """
 })
@@ -94,6 +102,7 @@ class ModelName(enum.Enum):
 class AvailableLang(enum.Enum):
   """Available Language in this solution."""
   JAPANESE = 'JP'
+  ENGLISH = 'EN'
 
 
 def post_job_to_summarize(

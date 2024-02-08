@@ -129,10 +129,25 @@ class MainTest(parameterized.TestCase):
           expected_model
       )
 
+  @parameterized.named_parameters([
+      {
+          'testcase_name': 'Japanese',
+          'expected_lang': 'JP',
+          'expected_article': 'これはテストです。'
+      },
+      {
+          'testcase_name': 'English',
+          'expected_lang': 'EN',
+          'expected_article': 'This is a test.'
+      }
+  ])
   @mock.patch.object(main, 'post_job_to_summarize')
-  def test_emmbed_article_to_prompt_ja(self, mock_post_job_to_summarize):
-    expected_lang = 'JP'
-    expected_article = 'これはテストです。'
+  def test_emmbed_article_to_prompt_ja(
+      self,
+      mock_post_job_to_summarize,
+      expected_lang,
+      expected_article,
+  ):
     expected_model = 'text-bison'
 
     main.emmbed_article_to_prompt(
