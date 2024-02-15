@@ -40,7 +40,7 @@ Vertex AI API following this guide
 [link](https://cloud.google.com/docs/authentication/api-keys)
 3. Install Python libraries.
 ```
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 4. Prepare input files following **example below**.
 5. Fill in your `project id` in `configs.yaml`.
