@@ -26,7 +26,7 @@ import immutabledict
 import numpy as np
 import vertexai
 from vertexai.language_models import TextGenerationModel
-from vertexai.preview.generative_models import GenerativeModel
+from vertexai.generative_models import GenerativeModel
 
 _DEFAULT_CONFIGS = 'configs.yaml'
 _TEMPERATURE = 0.7
@@ -57,11 +57,12 @@ _TEMPLATE_PROMPTS = immutabledict.immutabledict({
     記事:
       {article}
     """,
-    'EN': """ As an article editor, please provide me with a summary of article
-    that meets the following criteria.
+    'EN': """ As an article editor, explain the below article in summary
+    following criteria.
     Criteria:
       - Summary only
-      - Written to entice readers to read the full article
+      - Write your article in a way that encourages your reader to read the
+      entire article.
     Article:
       {article}
     """
@@ -96,6 +97,9 @@ class ModelName(enum.Enum):
   TEXT_BISON = 'text-bison'
   TEXT_UNICORN = 'text-unicorn'
   GEMINI_PRO = 'gemini-pro'
+  GEMINI_10_PRO = 'gemini-1.0-pro'
+  GEMINI_15_PRO = 'gemini-1.5-pro'
+  GEMINI_15_FLASH = 'gemini-1.5-flash'
 
 
 @enum.unique
@@ -133,6 +137,12 @@ def post_job_to_summarize(
         **_PARAMETERS,
     ).text
   elif model in [ModelName.GEMINI_PRO.value]:
+    llm_model = GenerativeModel(ModelName.GEMINI_10_PRO.value)
+    response = llm_model.generate_content(
+        context,
+    ).text
+  elif model in [ModelName.GEMINI_PRO.value, ModelName.GEMINI_15_PRO.value,
+                 ModelName.GEMINI_15_FLASH.value]:
     llm_model = GenerativeModel(model)
     response = llm_model.generate_content(
         context,
@@ -171,7 +181,7 @@ def emmbed_article_to_prompt(lang: str, article: str, model: str) -> None:
   if lang in [availablelang.value for availablelang in AvailableLang]:
     context = _TEMPLATE_PROMPTS[lang].format(article=article)
     response = post_job_to_summarize(context, model)
-    return response
+    return response.rstrip('\n')
   else:
     raise ValueError(error_messages.NOT_EXISTS_LANG_INFO)
 

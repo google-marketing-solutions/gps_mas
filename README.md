@@ -52,7 +52,7 @@ pip install -r requirements.txt
 | ---- | ---- |
 | ID | Used to link with the output. Please use unique numbers. |
 | Lang | Language of your prompt. As of 2023 Feb 8th, only JP and EN are supported. |
-| Model | Model that you would like to use. As of 2023 Jan 15, `text-bison`, `text-unicorn`, `gemini-pro` are supported. |
+| Model | Model that you would like to use. As of 2023 Jun 26, `text-bison`, `text-unicorn`, `gemini-1.0-pro`, `gemini-1.5-pro` and `gemini-1.5-flash` are supported. |
 | Article | The article content to summarize. |
 
 ### Example
@@ -62,3 +62,5 @@ pip install -r requirements.txt
 | 1 | JP | gemini-pro | 田中さんは、東京でサラリーマンをしている30歳の男性です。彼は、幼い頃から世界中を旅してみたいと思っていました。しかし、仕事が忙しく、なかなか実現できませんでした。ある日、田中さんは会社を辞めて、世界一周をすることを決意しました。彼は、貯金を取り崩しながら、一人で旅を始めました。|
 | 2 | JP | text-bison | 佐藤さんは、東京でサラリーマンをしている30歳の男性です。彼は、幼い頃から世界中を旅してみたいと思っていました。しかし、仕事が忙しく、なかなか実現できませんでした。ある日、佐藤さんは会社を辞めて、世界一周をすることを決意しました。彼は、貯金を取り崩しながら、一人で旅を始めました。|
 | 3 | EN | text-unicorn | Tom works in e-commerce company located in Tokyo when he is 30 years old. Tom has always wanted to travel around the world. However, Tom was busy with work and couldn't make it happen. One day, Tom decided to quit his job and travel around the world. He started the journey alone, dipping into his savings.|
+| 4 | EN | gemini-1.5-pro | Tom works in e-commerce company located in Tokyo when he is 30 years old. Tom has always wanted to travel around the world. However, Tom was busy with work and couldn't make it happen. One day, Tom decided to quit his job and travel around the world. He started the journey alone, dipping into his savings.|
+| 5 | EN | gemini-1.5-flash | Tom works in e-commerce company located in Tokyo when he is 30 years old. Tom has always wanted to travel around the world. However, Tom was busy with work and couldn't make it happen. One day, Tom decided to quit his job and travel around the world. He started the journey alone, dipping into his savings.|

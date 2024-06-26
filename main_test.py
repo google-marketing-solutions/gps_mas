@@ -97,7 +97,7 @@ class MainTest(parameterized.TestCase):
     expected_context = (
         'This is a fake summary. It is rain in Tokyo, cloudy in Osaka.'
     )
-    expected_model = 'gemini-pro'
+    expected_model = 'gemini-1.5-pro'
     expected_calls = [mock.call(expected_model),
                       mock.call(expected_model).generate_content(
                           expected_context
