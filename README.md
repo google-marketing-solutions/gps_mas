@@ -1,5 +1,5 @@
 <!--
-Copyright 2023 Google LLC
+Copyright 2023-2024 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -51,8 +51,8 @@ pip install -r requirements.txt
 | Columns | Explanation |
 | ---- | ---- |
 | ID | Used to link with the output. Please use unique numbers. |
-| Lang | Language of your prompt. As of 2023 Feb 8th, only JP and EN are supported. |
-| Model | Model that you would like to use. As of 2023 Jun 26, `text-bison`, `text-unicorn`, `gemini-1.0-pro`, `gemini-1.5-pro` and `gemini-1.5-flash` are supported. |
+| Lang | Language of your prompt. As of 2024 Feb 8th, only JP and EN are supported. |
+| Model | Model that you would like to use. As of 2024 Jun 26, `text-bison`, `text-unicorn`, `gemini-1.0-pro`, `gemini-1.5-pro` and `gemini-1.5-flash` are supported. |
 | Article | The article content to summarize. |
 
 ### Example
