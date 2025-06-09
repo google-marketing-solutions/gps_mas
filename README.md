@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
+> [!CAUTION]
+> Note that this solution has been archived as of June 2025.
+> No further development or updates will be made to the solution on the Github.
+
 # Media Article Summarizer (MAS)
 
 **Disclaimer: This is not an official Google product.**
